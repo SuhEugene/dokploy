@@ -11,6 +11,8 @@ import type { MainTraefikConfig } from "../utils/traefik/types";
 const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
 const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
+const TRAEFIK_TCP_ADDITIONAL_PORTS = (process.env.TRAEFIK_TCP_ADDITIONAL_PORTS ?? "").split(",").map(port => Number.parseInt(port, 10)).filter(port => port && port > 0 && port < 65536);
+const TRAEFIK_UDP_ADDITIONAL_PORTS = (process.env.TRAEFIK_UDP_ADDITIONAL_PORTS ?? "").split(",").map(port => Number.parseInt(port, 10)).filter(port => port && port > 0 && port < 65536);
 
 interface TraefikOptions {
 	enableDashboard?: boolean;
@@ -26,6 +28,10 @@ export const initializeTraefik = async ({
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = "traefik:v3.1.2";
 	const containerName = "dokploy-traefik";
+	console.log("Traefik SSL Port:", TRAEFIK_SSL_PORT);
+	console.log("Traefik Port:", TRAEFIK_PORT);
+	console.log("Traefik TCP Additional Ports:", TRAEFIK_TCP_ADDITIONAL_PORTS.join(", ") || 'None');
+	console.log("Traefik UDP Additional Ports:", TRAEFIK_UDP_ADDITIONAL_PORTS.join(", ") || 'None');
 	const settings: CreateServiceOptions = {
 		Name: containerName,
 		TaskTemplate: {
@@ -74,15 +80,28 @@ export const initializeTraefik = async ({
 					TargetPort: 80,
 					PublishedPort: TRAEFIK_PORT,
 					PublishMode: "host",
+
 				},
+				...(TRAEFIK_TCP_ADDITIONAL_PORTS.length > 0 ? TRAEFIK_TCP_ADDITIONAL_PORTS.map(port => ({
+					TargetPort: port,
+					PublishedPort: port,
+					PublishMode: "host" as const,
+					Protocol: "tcp"
+				})) : []),
+				...(TRAEFIK_UDP_ADDITIONAL_PORTS.length > 0 ? TRAEFIK_UDP_ADDITIONAL_PORTS.map(port => ({
+					TargetPort: port,
+					PublishedPort: port,
+					PublishMode: "host" as const,
+					Protocol: "udp"
+				})) : []),
 				...(enableDashboard
 					? [
-							{
-								TargetPort: 8080,
-								PublishedPort: 8080,
-								PublishMode: "host" as const,
-							},
-						]
+						{
+							TargetPort: 8080,
+							PublishedPort: 8080,
+							PublishMode: "host" as const,
+						},
+					]
 					: []),
 			],
 		},
@@ -168,20 +187,20 @@ export const getDefaultTraefikConfig = () => {
 		providers: {
 			...(process.env.NODE_ENV === "development"
 				? {
-						docker: {
-							defaultRule:
-								"Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)",
-						},
-					}
+					docker: {
+						defaultRule:
+							"Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)",
+					},
+				}
 				: {
-						swarm: {
-							exposedByDefault: false,
-							watch: false,
-						},
-						docker: {
-							exposedByDefault: false,
-						},
-					}),
+					swarm: {
+						exposedByDefault: false,
+						watch: false,
+					},
+					docker: {
+						exposedByDefault: false,
+					},
+				}),
 			file: {
 				directory: "/etc/dokploy/traefik/dynamic",
 				watch: true,
