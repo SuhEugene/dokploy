@@ -9,12 +9,12 @@ declare global {
 
 export let db: PostgresJsDatabase<typeof schema>;
 if (process.env.NODE_ENV === "production") {
-	db = drizzle(postgres(process.env.DATABASE_URL || ""), {
+	db = drizzle(postgres("postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy"), {
 		schema,
 	});
 } else {
 	if (!global.db)
-		global.db = drizzle(postgres(process.env.DATABASE_URL || ""), {
+		global.db = drizzle(postgres("postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy"), {
 			schema,
 		});
 

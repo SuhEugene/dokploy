@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { users } from "./schema";
 
-const connectionString = process.env.DATABASE_URL || "";
+const connectionString = "postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
 
 const pg = postgres(connectionString, { max: 1 });
 const db = drizzle(pg);

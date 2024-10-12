@@ -4,7 +4,7 @@ export default defineConfig({
 	schema: "./server/db/schema/index.ts",
 	dialect: "postgresql",
 	dbCredentials: {
-		url: process.env.DATABASE_URL || "",
+		url: "postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy",
 	},
 	out: "drizzle",
 	migrations: {
